@@ -69,7 +69,7 @@ class Game:
             self.__calculate()
             if self.game_over:
                 break
-            await asyncio.sleep(1/30)
+            await asyncio.sleep(1/60)
         if not self.game_over: # 게임 비정상 종료
             await channel_layer.group_send(
                 self.id,
