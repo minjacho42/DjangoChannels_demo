@@ -29,7 +29,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # 게임 방에서 나가기
-        await game_dict[self.match_group_name].cancel_ready(self.game_player_num)
+        game_dict[self.match_group_name].cancel_ready(self.game_player_num)
         await self.channel_layer.group_discard(
             self.match_group_name,
             self.channel_name
