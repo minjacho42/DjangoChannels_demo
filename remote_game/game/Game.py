@@ -36,7 +36,7 @@ class Game:
         channel_layer = get_channel_layer()
         while not self.player1_ready or not self.player2_ready:
             await asyncio.sleep(1)
-        logger.debug('All players ready!')
+        # logger.debug('All players ready!')
         while self.player1_ready and self.player2_ready:
             await channel_layer.group_send(
                 self.id,
@@ -83,29 +83,29 @@ class Game:
             )
         self.is_started = False
 
-    async def ready(self, player_num):
+    def ready(self, player_num):
         if player_num == 1:
             self.player1_ready = True
         elif player_num == 2:
             self.player2_ready = True
 
-    async def cancel_ready(self, player_num):
-        logger.debug(f'player{player_num} cancel ready')
+    def cancel_ready(self, player_num):
+        # logger.debug(f'player{player_num} cancel ready')
         if player_num == 1:
             self.player1_ready = False
         if player_num == 2:
             self.player2_ready = False
 
-    async def update(self, player_num, event):
-        logger.info(f'{player_num} {event}')
+    def update(self, player_num, event):
+        # logger.info(f'{player_num} {event}')
         if player_num == 1:
             self.player1_key['upPressed'] = event.get('upPressed')
             self.player1_key['downPressed'] = event.get('downPressed')
         if player_num == 2:
             self.player2_key['upPressed'] = event.get('upPressed')
             self.player2_key['downPressed'] = event.get('downPressed')
-        logger.info(f'{1} {self.player1_key}')
-        logger.info(f'{2} {self.player2_key}')
+        # logger.info(f'{1} {self.player1_key}')
+        # logger.info(f'{2} {self.player2_key}')
 
     def is_started(self):
         return self.is_started

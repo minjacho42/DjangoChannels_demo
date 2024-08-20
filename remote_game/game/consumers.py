@@ -40,14 +40,15 @@ class GameConsumer(AsyncWebsocketConsumer):
             game_dict.pop(self.match_group_name)
 
     async def receive(self, text_data=None, bytes_data=None):
-        logger.debug(text_data)
+        asyncio.create_task(self.handle_msg(text_data))
+
+    async def handle_msg(self, text_data):
         text_data_json = json.loads(text_data)
         msg_type = text_data_json['type']
-        # logger.debug(f'{msg_type} received')
         if msg_type == 'ready':
-            await game_dict[self.match_group_name].ready(self.game_player_num)
+            game_dict[self.match_group_name].ready(self.game_player_num)
         elif msg_type == 'update':
-            await game_dict[self.match_group_name].update(self.game_player_num, text_data_json['key'])
+            game_dict[self.match_group_name].update(self.game_player_num, text_data_json['key'])
 
     async def game_update(self, event):
         # logger.debug(f'game update: {event}')
