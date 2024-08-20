@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-(iy0b)(0c3(799oq^65h+3_85_rv8_(r#wv$ngybi_h8dked9&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*',]
 
 
 # Application definition
@@ -179,3 +179,9 @@ LOGGING = {
         },
     },
 }
+
+import os
+
+# 정적 파일을 모아둘 경로
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
