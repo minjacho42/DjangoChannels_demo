@@ -49,14 +49,19 @@ class Game:
                         'ball': {
                             'x': self.__ball.x,
                             'y': self.__ball.y,
+                            'radius': self.__ball.radius,
                         },
                         'paddleL': {
                             'x': self.__left_paddle.x,
                             'y': self.__left_paddle.y,
+                            'width': self.__left_paddle.width,
+                            'height': self.__left_paddle.height,
                         },
                         'paddleR': {
                             'x': self.__right_paddle.x,
                             'y': self.__right_paddle.y,
+                            'width': self.__right_paddle.width,
+                            'height': self.__right_paddle.height,
                         },
                     },
                 }
