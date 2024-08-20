@@ -37,7 +37,6 @@ class Game:
         while not self.player1_ready or not self.player2_ready:
             await asyncio.sleep(1)
         # logger.debug('All players ready!')
-        asyncio.create_task(self.__calculate())
         while self.player1_ready and self.player2_ready:
             await channel_layer.group_send(
                 self.id,
@@ -62,6 +61,7 @@ class Game:
                     },
                 }
             )
+            self.__calculate()
             if self.game_over:
                 break
             await asyncio.sleep(1/30)
@@ -110,33 +110,31 @@ class Game:
     def is_started(self):
         return self.is_started
 
-    async def __calculate(self):
-        while not self.game_over and self.player1_ready and self.player2_ready:
-            await asyncio.sleep(1/60)
-            if self.player1_key['upPressed']:
-                self.__left_paddle.dy = min(-Paddle.vInit, self.__left_paddle.dy - self.__left_paddle.accel)
-            if self.player1_key['downPressed']:
-                self.__left_paddle.dy = max(Paddle.vInit, self.__left_paddle.dy + self.__left_paddle.accel)
-            if not self.player1_key['upPressed'] and not self.player1_key['downPressed']:
-                self.__left_paddle.dy = 0
-            if self.player2_key['upPressed']:
-                self.__right_paddle.dy = min(-Paddle.vInit, self.__right_paddle.dy - self.__right_paddle.accel)
-            if self.player2_key['downPressed']:
-                self.__right_paddle.dy = max(Paddle.vInit, self.__right_paddle.dy + self.__right_paddle.accel)
-            if not self.player2_key['upPressed'] and not self.player2_key['downPressed']:
-                self.__right_paddle.dy = 0
+    def __calculate(self):
+        if self.player1_key['upPressed']:
+            self.__left_paddle.dy = min(-Paddle.vInit, self.__left_paddle.dy - self.__left_paddle.accel)
+        if self.player1_key['downPressed']:
+            self.__left_paddle.dy = max(Paddle.vInit, self.__left_paddle.dy + self.__left_paddle.accel)
+        if not self.player1_key['upPressed'] and not self.player1_key['downPressed']:
+            self.__left_paddle.dy = 0
+        if self.player2_key['upPressed']:
+            self.__right_paddle.dy = min(-Paddle.vInit, self.__right_paddle.dy - self.__right_paddle.accel)
+        if self.player2_key['downPressed']:
+            self.__right_paddle.dy = max(Paddle.vInit, self.__right_paddle.dy + self.__right_paddle.accel)
+        if not self.player2_key['upPressed'] and not self.player2_key['downPressed']:
+            self.__right_paddle.dy = 0
 
-            self.__left_paddle.move(self.canvas_height)
-            self.__right_paddle.move(self.canvas_height)
+        self.__left_paddle.move(self.canvas_height)
+        self.__right_paddle.move(self.canvas_height)
 
-            self.__ball.move(Game.canvas_height, self.__left_paddle, self.__right_paddle)
+        self.__ball.move(Game.canvas_height, self.__left_paddle, self.__right_paddle)
 
-            if self.__ball.x < -50:
-                self.player2_score += 1
-                self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'R')
-            elif self.__ball.x > Game.canvas_width + 50:
-                self.player1_score += 1
-                self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'L')\
+        if self.__ball.x < -50:
+            self.player2_score += 1
+            self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'R')
+        elif self.__ball.x > Game.canvas_width + 50:
+            self.player1_score += 1
+            self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'L')\
 
-            if self.player1_score >= 5 or self.player2_score >= 5:
-                self.game_over = True
+        if self.player1_score >= 5 or self.player2_score >= 5:
+            self.game_over = True
