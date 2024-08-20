@@ -24,6 +24,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(
                 self.match_group_name, self.channel_name
             )
+            await self.accept()
         else:
             await self.close()
             return
@@ -42,7 +43,6 @@ class GameConsumer(AsyncWebsocketConsumer):
             self.game.player_is_full = True
         else:
             await self.close(1000)
-        await self.accept()
 
     async def disconnect(self, close_code):
         # 게임 방에서 나가기

@@ -140,14 +140,28 @@ class Game:
         self.__left_paddle.move(self.canvas_height)
         self.__right_paddle.move(self.canvas_height)
 
-        self.__ball.move(Game.canvas_height, self.__left_paddle, self.__right_paddle)
-
-        if self.__ball.x < -50:
-            self.player2_score += 1
-            self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'R')
-        elif self.__ball.x > Game.canvas_width + 50:
-            self.player1_score += 1
-            self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'L')\
+        self.__ball.x += self.__ball.dx
+        self.__ball.y += self.__ball.dy
+        if self.__ball.dy > 0 and self.__ball.y + self.__ball.radius > self.canvas_height:
+            self.__ball.dy *= -1
+        elif self.__ball.dy < 0 and self.__ball.y - self.__ball.radius < 0:
+            self.__ball.dy *= -1
+        if self.__ball.dx > 0:
+            if self.__ball.x - self.__ball.radius > self.__right_paddle.x:
+                self.player1_score += 1
+                self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'L')
+            elif -self.__ball.radius <= self.__ball.x - self.__right_paddle.x <= self.__ball.radius:
+                if (self.__ball.y - self.__ball.radius <= self.__right_paddle.y + self.__right_paddle.height and
+                    self.__ball.y + self.__ball.radius >= self.__right_paddle.y):
+                    self.__ball.dx *= -1
+        elif self.__ball.dx < 0:
+            if self.__ball.x + self.__ball.radius < self.__left_paddle.x:
+                self.player2_score += 1
+                self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'R')
+            elif -self.__ball.radius <= self.__ball.x - self.__left_paddle.x <= self.__ball.radius:
+                if (self.__ball.y - self.__ball.radius <= self.__left_paddle.y + self.__left_paddle.height and
+                        self.__ball.y + self.__ball.radius >= self.__left_paddle.y):
+                    self.__ball.dx *= -1
 
         if self.player1_score >= 5 or self.player2_score >= 5:
             self.game_over = True
