@@ -46,15 +46,16 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # 게임 방에서 나가기
-        self.game.cancel_ready(self.game_player_num)
-        await self.channel_layer.group_discard(
-            self.match_group_name,
-            self.channel_name
-        )
-        logger.debug(f'Player{self.game_player_num} Disconnected')
-        if not game_dict[self.match_group_name].is_started:
-            logger.debug("GameDict Disconnected")
-            game_dict.pop(self.match_group_name)
+        if self.match_group_name in game_dict:
+            self.game.cancel_ready(self.game_player_num)
+            await self.channel_layer.group_discard(
+                self.match_group_name,
+                self.channel_name
+            )
+            logger.debug(f'Player{self.game_player_num} Disconnected')
+            if not game_dict[self.match_group_name].is_started:
+                logger.debug("GameDict Disconnected")
+                game_dict.pop(self.match_group_name)
 
     async def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)

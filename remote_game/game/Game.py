@@ -154,6 +154,8 @@ class Game:
                 if (self.__ball.y - self.__ball.radius <= self.__right_paddle.y + self.__right_paddle.height and
                     self.__ball.y + self.__ball.radius >= self.__right_paddle.y):
                     self.__ball.dx *= -1
+                    self.__ball.dx *= Ball.em + 1
+                    self.__ball.dy += self.__right_paddle.dy * Ball.cof
         elif self.__ball.dx < 0:
             if self.__ball.x + self.__ball.radius < self.__left_paddle.x:
                 self.player2_score += 1
@@ -162,6 +164,8 @@ class Game:
                 if (self.__ball.y - self.__ball.radius <= self.__left_paddle.y + self.__left_paddle.height and
                         self.__ball.y + self.__ball.radius >= self.__left_paddle.y):
                     self.__ball.dx *= -1
+                    self.__ball.dx *= Ball.em + 1
+                    self.__ball.dy += self.__left_paddle.dy * Ball.cof
 
         if self.player1_score >= 5 or self.player2_score >= 5:
             self.game_over = True
