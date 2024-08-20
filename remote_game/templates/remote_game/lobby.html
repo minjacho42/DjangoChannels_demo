@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby - WebSocket Test</title>
+</head>
+<body>
+    <h1>Lobby</h1>
+    <p>Waiting for a match...</p>
+
+    <script>
+        const wsUrl = `ws://${window.location.host}/ws/game/lobby/`;  // WebSocket URL
+
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = function(event) {
+            console.log("WebSocket is open now.");
+        };
+
+        // 매치가 잡히면 해당 매치로 리다이렉션
+        socket.onmessage = function(event) {
+            const matchName = event.data;  // 매치 이름 또는 ID
+            console.log("Match found:", matchName);
+
+            // 매치가 잡히면 /game/{matchName}으로 리다이렉션
+            window.location.href = `/game/match/${matchName}/`;
+        };
+
+        socket.onclose = function(event) {
+            console.log("WebSocket is closed now.");
+        };
+
+        socket.onerror = function(error) {
+            console.log("WebSocket error observed:", error);
+        };
+    </script>
+</body>
+</html>

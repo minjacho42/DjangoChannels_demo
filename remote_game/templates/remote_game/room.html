@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Match - WebSocket Game</title>
+    <style>
+        /* 게임 화면의 크기와 패들 및 공의 스타일 설정 */
+        #gameCanvas {
+            width: 800px;
+            height: 600px;
+            position: relative;
+            background-color: #f0f0f0;
+        }
+        .paddle {
+            width: 10px;
+            height: 100px;
+            position: absolute;
+            background-color: #000;
+        }
+        #leftPaddle {
+            left: 0;
+        }
+        #rightPaddle {
+            right: 0;
+        }
+        #ball {
+            width: 15px;
+            height: 15px;
+            position: absolute;
+            background-color: red;
+            border-radius: 50%;
+        }
+        #scoreboard {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Match</h1>
+
+    <!-- 게임을 그릴 영역 -->
+    <div id="gameCanvas">
+        <div id="leftPaddle" class="paddle"></div>
+        <div id="rightPaddle" class="paddle"></div>
+        <div id="ball"></div>
+    </div>
+
+    <!-- 점수를 표시할 영역 -->
+    <div id="scoreboard">
+        <span id="player1Score">Player 1: 0</span> - 
+        <span id="player2Score">Player 2: 0</span>
+    </div>
+
+    <!-- Ready 버튼 -->
+    <button id="readyButton">Ready</button>
+
+    <script>
+        // Extract match_name from URL
+        const pathParts = window.location.pathname.split('/');
+        const matchName = pathParts[3];  // /game/match/{match_name}/
+
+        const wsUrl = `ws://${window.location.host}/ws/game/match/${matchName}/`;  // WebSocket URL
+        const socket = new WebSocket(wsUrl);
+
+        let upPressed = false;
+        let downPressed = false;
+
+        // Ready 버튼 클릭 시 type: ready 전송
+        document.getElementById("readyButton").addEventListener("click", function() {
+            const eventData = JSON.stringify({ type: 'ready' });
+            socket.send(eventData);
+        });
+
+        // 키 입력 시 처리
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "ArrowUp") {
+                upPressed = true;
+                sendUpdate();
+            } else if (event.key === "ArrowDown") {
+                downPressed = true;
+                sendUpdate();
+            }
+        });
+
+        document.addEventListener("keyup", function(event) {
+            if (event.key === "ArrowUp") {
+                upPressed = false;
+                sendUpdate();
+            } else if (event.key === "ArrowDown") {
+                downPressed = false;
+                sendUpdate();
+            }
+        });
+
+        // 키 상태를 서버에 전송하는 함수
+        function sendUpdate() {
+            const eventData = JSON.stringify({
+                type: 'update',
+                key: {
+                    upPressed: upPressed,
+                    downPressed: downPressed
+                }
+            });
+            socket.send(eventData);
+        }
+
+        // 서버로부터 JSON 데이터를 받아 화면에 패들, 공의 위치 및 점수 업데이트
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+
+            // 상태가 'done'이면 게임이 종료된 것으로 처리
+            if (data.status === 'done') {
+                alert('Game Over!');
+            }
+
+            // 패들 및 공의 위치 업데이트
+            if (data.paddleL && data.paddleR && data.ball) {
+                // 왼쪽 패들의 위치 업데이트
+                const leftPaddle = document.getElementById("leftPaddle");
+                leftPaddle.style.top = `${data.paddleL.y}px`;
+
+                // 오른쪽 패들의 위치 업데이트
+                const rightPaddle = document.getElementById("rightPaddle");
+                rightPaddle.style.top = `${data.paddleR.y}px`;
+
+                // 공의 위치 업데이트
+                const ball = document.getElementById("ball");
+                ball.style.top = `${data.ball.y}px`;
+                ball.style.left = `${data.ball.x}px`;
+            }
+
+            // 점수 업데이트
+            if (data.player1Score !== undefined && data.player2Score !== undefined) {
+                const player1ScoreElement = document.getElementById("player1Score");
+                const player2ScoreElement = document.getElementById("player2Score");
+
+                player1ScoreElement.textContent = `Player 1: ${data.player1Score}`;
+                player2ScoreElement.textContent = `Player 2: ${data.player2Score}`;
+            }
+        };
+
+        // WebSocket connection opened
+        socket.onopen = function(event) {
+            console.log("WebSocket connected for match:", matchName);
+        };
+
+        // WebSocket connection closed
+        socket.onclose = function(event) {
+            console.log("WebSocket closed for match:", matchName);
+        };
+
+        // WebSocket error event
+        socket.onerror = function(error) {
+            console.log("WebSocket error:", error);
+        };
+    </script>
+</body>
+</html>
