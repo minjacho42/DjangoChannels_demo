@@ -61,7 +61,7 @@
         const pathParts = window.location.pathname.split('/');
         const matchName = pathParts[3];  // /game/match/{match_name}/
 
-        const wsUrl = `ws://${window.location.host}/ws/game/match/${matchName}/`;  // WebSocket URL
+        const wsUrl = `ws://${window.location.host}/ws/game/match/?match_name=${matchName}&id=${1}/`;  // WebSocket URL
         const socket = new WebSocket(wsUrl);
 
         let upPressed = false;

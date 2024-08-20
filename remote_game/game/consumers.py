@@ -3,6 +3,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .Game import Game
 import logging
+import urllib.parse
 
 game_dict = {}
 
@@ -10,11 +11,22 @@ logger = logging.getLogger('transendence')
 
 class GameConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.match_name = self.scope['url_route']['kwargs']['match_name']
-        self.match_group_name = f'game_{self.match_name}'
-        await self.channel_layer.group_add(
-            self.match_group_name, self.channel_name
-        )
+        # 쿼리 문자열을 파싱하여 match_name과 id를 가져오기
+        query_string = self.scope['query_string'].decode('utf-8')
+        query_params = urllib.parse.parse_qs(query_string)
+
+        # match_name과 id 추출
+        match_name = query_params.get('match_name', [None])[0]
+        user_id = query_params.get('id', [None])[0]
+        if match_name and user_id:
+            self.match_group_name = f'game_{match_name}'
+            self.user_id = user_id
+            await self.channel_layer.group_add(
+                self.match_group_name, self.channel_name
+            )
+        else:
+            await self.close()
+            return
         logger.debug(f'{self.match_group_name} connected')
         self.game_player_num = 0
         if self.match_group_name not in game_dict:
