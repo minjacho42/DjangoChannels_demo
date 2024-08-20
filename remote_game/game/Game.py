@@ -2,6 +2,7 @@ import asyncio
 from channels.layers import get_channel_layer
 from remote_game.game_objects.Ball import Ball
 from remote_game.game_objects.Paddle import Paddle
+# import time
 
 import logging
 
@@ -13,6 +14,7 @@ class Game:
     def __init__(self, id):
         self.id = id
         self.is_started = False
+        self.player_is_full = False
         self.player1_ready = False
         self.player2_ready = False
         self.player1_score = 0
@@ -37,7 +39,13 @@ class Game:
         while not self.player1_ready or not self.player2_ready:
             await asyncio.sleep(1)
         # logger.debug('All players ready!')
+        # last_time = time.time()
         while self.player1_ready and self.player2_ready:
+            # current_time = time.time()
+            # elapsed_time = current_time - last_time
+            # last_time = current_time
+            # if elapsed_time > 1 / 60 + 0.01:
+            #     logger.info(f"Time per frame: {elapsed_time:.4f} seconds")
             await channel_layer.group_send(
                 self.id,
                 {
@@ -69,7 +77,7 @@ class Game:
             self.__calculate()
             if self.game_over:
                 break
-            await asyncio.sleep(1/60)
+            await asyncio.sleep(1/100)
         if not self.game_over: # 게임 비정상 종료
             await channel_layer.group_send(
                 self.id,

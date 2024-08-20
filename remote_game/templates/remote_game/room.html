@@ -67,6 +67,9 @@
         let upPressed = false;
         let downPressed = false;
 
+        // WebSocket 응답 카운트
+        let responseCount = 0;
+
         // Ready 버튼 클릭 시 type: ready 전송
         document.getElementById("readyButton").addEventListener("click", function() {
             const eventData = JSON.stringify({ type: 'ready' });
@@ -109,6 +112,7 @@
         // 서버로부터 JSON 데이터를 받아 화면에 패들, 공의 위치 및 점수 업데이트
         socket.onmessage = function(event) {
             const data = JSON.parse(event.data);
+            responseCount++;  // 응답이 올 때마다 카운트 증가
 
             // 상태가 'done'이면 게임이 종료된 것으로 처리
             if (data.status === 'done') {
@@ -140,6 +144,12 @@
                 player2ScoreElement.textContent = `Player 2: ${data.player2Score}`;
             }
         };
+
+        // 1초마다 응답 카운트를 출력하고 초기화
+        setInterval(() => {
+            console.log(`WebSocket responses in the last second: ${responseCount}`);
+            responseCount = 0;  // 카운트 초기화
+        }, 1000);  // 1초마다 실행
 
         // WebSocket connection opened
         socket.onopen = function(event) {
