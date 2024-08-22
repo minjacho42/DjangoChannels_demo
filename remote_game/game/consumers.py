@@ -19,6 +19,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # match_name과 id 추출
         match_name = query_params.get('match_name', [None])[0]
         user_id = query_params.get('id', [None])[0]
+        self.player = None
         if match_name and user_id:
             self.match_group_name = f'game_{match_name}'
             self.player = Player(user_id)
@@ -45,12 +46,13 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # 게임 방에서 나가기
-        self.player.set_is_ready(False)
-        await self.channel_layer.group_discard(
-            self.match_group_name,
-            self.channel_name
-        )
-        logger.debug(f'Player {self.player.get_id()} Disconnected')
+        if self.player:
+            self.player.set_is_ready(False)
+            await self.channel_layer.group_discard(
+                self.match_group_name,
+                self.channel_name
+            )
+            logger.debug(f'Player {self.player.get_id()} Disconnected')
 
     # Receive ready or key info
     async def receive(self, text_data=None, bytes_data=None):
