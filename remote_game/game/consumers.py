@@ -2,6 +2,7 @@ import asyncio
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .Game import Game
+from remote_game.game_objects.Player import Player
 import logging
 import urllib.parse
 
@@ -20,7 +21,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         user_id = query_params.get('id', [None])[0]
         if match_name and user_id:
             self.match_group_name = f'game_{match_name}'
-            self.user_id = user_id
+            self.player = Player(user_id)
             await self.channel_layer.group_add(
                 self.match_group_name, self.channel_name
             )
@@ -28,62 +29,44 @@ class GameConsumer(AsyncWebsocketConsumer):
         else:
             await self.close()
             return
-        logger.debug(f'{self.match_group_name} connected')
-        self.game_player_num = 0
-        if self.match_group_name not in game_dict:
+        logger.debug(f'{self.player.get_id()} connected to {self.match_group_name}')
+        if self.match_group_name not in game_dict: # 게임에 먼저 참가한다면,
             logger.debug("GameDict Created")
             game_dict[self.match_group_name] = Game(self.match_group_name)
             self.game = game_dict[self.match_group_name]
-            self.game_player_num = 1
+            self.game.add_player(self.player)
             asyncio.create_task(self.game.start())
-        elif not game_dict[self.match_group_name].player_is_full:
+        elif not game_dict[self.match_group_name].player_is_full(): # 이미 게임에 한명이 들어가있다면,
             logger.debug("GameDict Joined")
             self.game = game_dict[self.match_group_name]
-            self.game_player_num = 2
-            self.game.player_is_full = True
-        else:
+            self.game.add_player(self.player)
+        else: # 게임에 이미 두명이 들어갔다면,
             await self.close(1000)
 
     async def disconnect(self, close_code):
         # 게임 방에서 나가기
-        if self.match_group_name in game_dict:
-            self.game.cancel_ready(self.game_player_num)
-            await self.channel_layer.group_discard(
-                self.match_group_name,
-                self.channel_name
-            )
-            logger.debug(f'Player{self.game_player_num} Disconnected')
-            if not game_dict[self.match_group_name].is_started:
-                logger.debug("GameDict Disconnected")
-                game_dict.pop(self.match_group_name)
+        self.player.set_is_ready(False)
+        await self.channel_layer.group_discard(
+            self.match_group_name,
+            self.channel_name
+        )
+        logger.debug(f'Player {self.player.get_id()} Disconnected')
 
+    # Receive ready or key info
     async def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
         msg_type = text_data_json['type']
         if msg_type == 'ready':
-            self.game.ready(self.game_player_num)
+            self.player.set_is_ready(True)
         elif msg_type == 'update':
-            self.game.update(self.game_player_num, text_data_json['key'])
+            self.player.set_input(text_data_json['key'])
 
-    # async def handle_msg(self, text_data):
-    #     # logger.debug(f'input received: {text_data}')
-    #     text_data_json = json.loads(text_data)
-    #     msg_type = text_data_json['type']
-    #     if msg_type == 'ready':
-    #         game_dict[self.match_group_name].ready(self.game_player_num)
-    #     elif msg_type == 'update':
-    #         game_dict[self.match_group_name].update(self.game_player_num, text_data_json['key'])
-
+    # Send game update to all players
     async def game_update(self, event):
-        # logger.debug(f'game update: {event}')
         event_json = json.dumps(event['data'])
-        # 모든 플레이어에게 게임 상태 업데이트
         await self.send(text_data=event_json)
 
-    async def game_abnormal_finish(self, event):
-        logger.debug(f'game abnormal finish: {event}')
-        await self.send(text_data=event['data'])
-
-    async def game_finish(self, event):
-        logger.debug(f'game finish: {event}')
-        await self.send(text_data=event['data'])
+    # Delete game from gamedict when game is done
+    async def game_done(self, event):
+        logger.debug(f'{self.match_group_name} game done')
+        game_dict.pop(self.match_group_name)

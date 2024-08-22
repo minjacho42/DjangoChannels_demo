@@ -2,6 +2,7 @@ import asyncio
 from channels.layers import get_channel_layer
 from remote_game.game_objects.Ball import Ball
 from remote_game.game_objects.Paddle import Paddle
+from remote_game.game_objects.Player import Player
 # import time
 
 import logging
@@ -11,49 +12,50 @@ logger = logging.getLogger('transendence')
 class Game:
     canvas_width = 800
     canvas_height = 600
-    def __init__(self, id):
-        self.id = id
+    game_status = {
+        0 : 'waiting',
+        1 : 'in progress',
+        2 : 'game over',
+        3 : 'error'
+    }
+    def __init__(self, game_id):
+        self.id = game_id
+        self.status = 0
         self.is_started = False
-        self.player_is_full = False
-        self.player1_ready = False
-        self.player2_ready = False
-        self.player1_score = 0
-        self.player2_score = 0
-        self.player1_key = {
-            'upPressed' : False,
-            'downPressed' : False,
-        }
-        self.player2_key = {
-            'upPressed' : False,
-            'downPressed' : False,
-        }
+        self.players = {}
         self.__ball = Ball((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2)
         self.__left_paddle = Paddle(50, (Game.canvas_height - 100) / 2)
         self.__right_paddle = Paddle(Game.canvas_width - 50 - 10, (Game.canvas_height - 100) / 2)
         self.game_over = False
-
+        self.game_err = False
+        self.winner = None
 
     async def start(self):
         self.is_started = True
         channel_layer = get_channel_layer()
-        while not self.player1_ready or not self.player2_ready:
+        while len(self.players) < 2:
+            await asyncio.sleep(0.5)
+        while not self.players[0].get_is_ready() or not self.players[1].get_is_ready():
+            await channel_layer.group_send(
+                self.id,
+                {
+                    'type': 'game_update',
+                    'data' : {
+                        'status': Game.game_status[self.status],
+                    }
+                }
+            )
             await asyncio.sleep(1)
-        # logger.debug('All players ready!')
-        # last_time = time.time()
-        while self.player1_ready and self.player2_ready:
-            # current_time = time.time()
-            # elapsed_time = current_time - last_time
-            # last_time = current_time
-            # if elapsed_time > 1 / 60 + 0.01:
-            #     logger.info(f"Time per frame: {elapsed_time:.4f} seconds")
+        self.status = 1
+        while self.status == 1: # game is in progress
             await channel_layer.group_send(
                 self.id,
                 {
                     'type': 'game_update',
                     'data': {
-                        'status': 'done' if self.game_over else 'in progress',
-                        'player1Score': self.player1_score,
-                        'player2Score': self.player2_score,
+                        'status': Game.game_status[self.status],
+                        'player1Score': self.players[0].get_score(),
+                        'player2Score': self.players[1].get_score(),
                         'ball': {
                             'x': self.__ball.x,
                             'y': self.__ball.y,
@@ -74,67 +76,82 @@ class Game:
                     },
                 }
             )
-            self.__calculate()
-            if self.game_over:
-                break
+            self._calculate()
+            if not self.players[0].get_is_ready():
+                self.players.pop(0)
+                self.status = 3
+            if not self.players[1].get_is_ready():
+                self.players.pop(1)
+                self.status = 3
             await asyncio.sleep(1/100)
-        if not self.game_over: # 게임 비정상 종료
+        if self.status == 2: # game over with game winner
             await channel_layer.group_send(
                 self.id,
                 {
-                    'type': 'game_abnormal_finish',
-                    'data' : 'Player Exited'
+                    'type': 'game_update',
+                    'data' : {
+                        'status': Game.game_status[self.status],
+                        'player1Score': self.players[0].get_score(),
+                        'player2Score': self.players[1].get_score(),
+                        'ball': {
+                            'x': self.__ball.x,
+                            'y': self.__ball.y,
+                            'radius': self.__ball.radius,
+                        },
+                        'paddleL': {
+                            'x': self.__left_paddle.x,
+                            'y': self.__left_paddle.y,
+                            'width': self.__left_paddle.width,
+                            'height': self.__left_paddle.height,
+                        },
+                        'paddleR': {
+                            'x': self.__right_paddle.x,
+                            'y': self.__right_paddle.y,
+                            'width': self.__right_paddle.width,
+                            'height': self.__right_paddle.height,
+                        },
+                    }
                 }
             )
-        else:
+        else: # game over by connection lost
             await channel_layer.group_send(
                 self.id,
                 {
-                    'type': 'game_finish',
-                    'data' : 'Game Over'
+                    'type': 'game_update',
+                    'data' : {
+                        'status': Game.game_status[self.status],
+                    }
                 }
             )
-        self.is_started = False
+        await channel_layer.group_send(
+            self.id,
+            {
+                'type': 'game_done'
+            }
+        )
 
-    def ready(self, player_num):
-        if player_num == 1:
-            self.player1_ready = True
-        elif player_num == 2:
-            self.player2_ready = True
-
-    def cancel_ready(self, player_num):
-        # logger.debug(f'player{player_num} cancel ready')
-        if player_num == 1:
-            self.player1_ready = False
-        if player_num == 2:
-            self.player2_ready = False
-
-    def update(self, player_num, event):
-        # logger.info(f'{player_num} {event}')
-        if player_num == 1:
-            self.player1_key['upPressed'] = event.get('upPressed')
-            self.player1_key['downPressed'] = event.get('downPressed')
-        if player_num == 2:
-            self.player2_key['upPressed'] = event.get('upPressed')
-            self.player2_key['downPressed'] = event.get('downPressed')
-        # logger.info(f'{1} {self.player1_key}')
-        # logger.info(f'{2} {self.player2_key}')
+    def add_player(self, player):
+        idx = len(self.players)
+        self.players[idx] = player
 
     def is_started(self):
-        return self.is_started
+        return self.status == 1
 
-    def __calculate(self):
-        if self.player1_key['upPressed']:
+    def player_is_full(self):
+        return len(self.players) >= 2
+
+    def _calculate(self):
+        if self.players[0].get_input()['upPressed']:
             self.__left_paddle.dy = min(-Paddle.vInit, self.__left_paddle.dy - self.__left_paddle.accel)
-        if self.player1_key['downPressed']:
+        if self.players[0].get_input()['downPressed']:
             self.__left_paddle.dy = max(Paddle.vInit, self.__left_paddle.dy + self.__left_paddle.accel)
-        if not self.player1_key['upPressed'] and not self.player1_key['downPressed']:
+        if not self.players[0].get_input()['upPressed'] and not self.players[0].get_input()['downPressed']:
             self.__left_paddle.dy = 0
-        if self.player2_key['upPressed']:
+        if self.players[1].get_input()['upPressed']:
             self.__right_paddle.dy = min(-Paddle.vInit, self.__right_paddle.dy - self.__right_paddle.accel)
-        if self.player2_key['downPressed']:
+        if self.players[1].get_input()['downPressed']:
             self.__right_paddle.dy = max(Paddle.vInit, self.__right_paddle.dy + self.__right_paddle.accel)
-        if not self.player2_key['upPressed'] and not self.player2_key['downPressed']:
+        if not self.players[1].get_input()['upPressed'] and not self.players[1].get_input()['downPressed']:
             self.__right_paddle.dy = 0
 
         self.__left_paddle.move(self.canvas_height)
@@ -148,7 +165,7 @@ class Game:
             self.__ball.dy *= -1
         if self.__ball.dx > 0:
             if self.__ball.x - self.__ball.radius > self.__right_paddle.x:
-                self.player1_score += 1
+                self.players[0].increment_score()
                 self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'L')
             elif -self.__ball.radius <= self.__ball.x - self.__right_paddle.x <= self.__ball.radius:
                 if (self.__ball.y - self.__ball.radius <= self.__right_paddle.y + self.__right_paddle.height and
@@ -158,7 +175,7 @@ class Game:
                     self.__ball.dy += self.__right_paddle.dy * Ball.cof
         elif self.__ball.dx < 0:
             if self.__ball.x + self.__ball.radius < self.__left_paddle.x:
-                self.player2_score += 1
+                self.players[1].increment_score()
                 self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'R')
             elif -self.__ball.radius <= self.__ball.x - self.__left_paddle.x <= self.__ball.radius:
                 if (self.__ball.y - self.__ball.radius <= self.__left_paddle.y + self.__left_paddle.height and
@@ -167,5 +184,5 @@ class Game:
                     self.__ball.dx *= Ball.em + 1
                     self.__ball.dy += self.__left_paddle.dy * Ball.cof
 
-        if self.player1_score >= 5 or self.player2_score >= 5:
-            self.game_over = True
+        if self.players[0].get_score() >= 5 or self.players[1].get_score() >= 5:
+            self.status = 2
