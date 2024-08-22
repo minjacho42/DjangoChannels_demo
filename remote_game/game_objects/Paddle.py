@@ -1,12 +1,12 @@
 class Paddle:
-    vInit = 4
+    vInit = 6
     em = 0.03
     cof = 0.3
     def __init__(self, x=0, y=0, width=10, height=100):
         self.x = x
         self.y = y
         self.dy = 0
-        self.accel = 0
+        self.accel = 0.15
         self.width = width
         self.height = height
 

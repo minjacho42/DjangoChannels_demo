@@ -1,5 +1,5 @@
 class Ball:
-    ball_speed = 5
+    ball_speed = 8
     ball_speed_max = 10
     vInit = 4
     em = 0.03

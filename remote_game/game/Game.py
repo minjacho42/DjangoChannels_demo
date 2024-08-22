@@ -130,6 +130,7 @@ class Game:
             }
         )
 
+
     def add_player(self, player):
         idx = len(self.players)
         self.players[idx] = player
@@ -164,7 +165,7 @@ class Game:
         elif self.__ball.dy < 0 and self.__ball.y - self.__ball.radius < 0:
             self.__ball.dy *= -1
         if self.__ball.dx > 0:
-            if self.__ball.x - self.__ball.radius > self.__right_paddle.x:
+            if self.__ball.x - self.__ball.radius > Game.canvas_width:
                 self.players[0].increment_score()
                 self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'L')
             elif -self.__ball.radius <= self.__ball.x - self.__right_paddle.x <= self.__ball.radius:
@@ -176,10 +177,10 @@ class Game:
                     self.__ball.dy += self.__right_paddle.dy * Ball.cof
                     self.__ball.dy = min(Ball.ball_speed_max, self.__ball.dy)
         elif self.__ball.dx < 0:
-            if self.__ball.x + self.__ball.radius < self.__left_paddle.x:
+            if self.__ball.x + self.__ball.radius < 0:
                 self.players[1].increment_score()
                 self.__ball.reset((Game.canvas_width - 15) / 2, (Game.canvas_height - 15) / 2, 'R')
-            elif -self.__ball.radius <= self.__ball.x - self.__left_paddle.x <= self.__ball.radius:
+            elif -self.__ball.radius <= self.__ball.x - (self.__left_paddle.x + self.__left_paddle.width) <= self.__ball.radius:
                 if (self.__ball.y - self.__ball.radius <= self.__left_paddle.y + self.__left_paddle.height and
                         self.__ball.y + self.__ball.radius >= self.__left_paddle.y):
                     self.__ball.dx *= -1
