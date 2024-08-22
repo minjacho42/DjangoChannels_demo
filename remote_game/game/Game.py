@@ -172,7 +172,9 @@ class Game:
                     self.__ball.y + self.__ball.radius >= self.__right_paddle.y):
                     self.__ball.dx *= -1
                     self.__ball.dx *= Ball.em + 1
+                    self.__ball.dx = min(Ball.ball_speed_max, self.__ball.dx)
                     self.__ball.dy += self.__right_paddle.dy * Ball.cof
+                    self.__ball.dy = min(Ball.ball_speed_max, self.__ball.dy)
         elif self.__ball.dx < 0:
             if self.__ball.x + self.__ball.radius < self.__left_paddle.x:
                 self.players[1].increment_score()
@@ -182,7 +184,9 @@ class Game:
                         self.__ball.y + self.__ball.radius >= self.__left_paddle.y):
                     self.__ball.dx *= -1
                     self.__ball.dx *= Ball.em + 1
+                    self.__ball.dx = min(Ball.ball_speed_max, self.__ball.dx)
                     self.__ball.dy += self.__left_paddle.dy * Ball.cof
+                    self.__ball.dy = min(Ball.ball_speed_max, self.__ball.dy)
 
         if self.players[0].get_score() >= 5 or self.players[1].get_score() >= 5:
             self.status = 2
